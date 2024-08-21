@@ -1,0 +1,113 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Atualizar e instalar pacotes necessários
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    - name: Adicionar chave GPG oficial do Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Adicionar repositório Docker
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+        state: present
+        update_cache: yes
+
+    - name: Instalar Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Adicionar usuário ao grupo Docker
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Baixar Docker Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Verificar integridade do Docker Compose
+      command: sha256sum /usr/local/bin/docker-compose
+      register: docker_compose_checksum
+
+    - name: Verificar versão do Docker Compose
+      command: docker-compose --version
+
+    - name: Criar arquivo docker-compose.yml
+      copy:
+        dest: /home/{{ ansible_user }}/docker-compose.yml
+        content: |
+          version: '3.8'
+
+          services:
+            nginx:
+              image: nginx:latest
+              ports:
+                - "80:80"
+              volumes:
+                - /home/{{ ansible_user }}/nginx.conf:/etc/nginx/nginx.conf
+              depends_on:
+                - wordpress
+
+            wordpress:
+              image: wordpress:latest
+              ports:
+                - "8080:80"
+              environment:
+                WORDPRESS_DB_HOST: db:3306
+                WORDPRESS_DB_USER: wordpress
+                WORDPRESS_DB_PASSWORD: wordpress
+                WORDPRESS_DB_NAME: wordpress
+              depends_on:
+                - db
+
+            db:
+              image: mysql:5.7
+              environment:
+                MYSQL_ROOT_PASSWORD: root
+                MYSQL_DATABASE: wordpress
+                MYSQL_USER: wordpress
+                MYSQL_PASSWORD: wordpress
+              volumes:
+                - db_data:/var/lib/mysql
+
+          volumes:
+            db_data:
+
+    - name: Criar arquivo de configuração do Nginx
+      copy:
+        dest: /home/{{ ansible_user }}/nginx.conf
+        content: |
+          events {}
+
+          http {
+              server {
+                  listen 80;
+
+                  location / {
+                      proxy_pass http://wordpress:80;
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                      proxy_set_header X-Forwarded-Proto $scheme;
+                  }
+              }
+          }
+
+    - name: Iniciar containers com Docker Compose
+      command: docker-compose up -d
+      args:
+        chdir: /home/{{ ansible_user }}

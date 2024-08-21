@@ -1,0 +1,13 @@
+vpc_cidr_block        = "10.0.0.0/16"
+vpc_name              = "wordpress-vpc"
+subnet_cidrs          = ["10.0.1.0/24", "10.0.2.0/24"]
+availability_zones    = ["us-east-1a", "us-east-1b"]
+subnet_name           = "wordpress-subnet"
+internet_gateway_name = "wordpress-igw"
+route_table_name      = "wordpress-route-table"
+security_group_name   = "wordpress-sg"
+ami                   = "ami-04a81a99f5ec58529"
+instance_type         = "t2.micro"
+ec2_name              = "Wordpress"
+key_name              = "infra"
+private_key_path      = "infra.pem"
