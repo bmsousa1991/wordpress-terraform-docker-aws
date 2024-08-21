@@ -1,4 +1,4 @@
-# Deploy Automático de Servidor WordPress com Terraform e Ansible
+# Automatizando Deploy de Servidor WordPress com Terraform e Ansible
 
 Este projeto automatiza a criação de um servidor web para WordPress utilizando Terraform para provisionamento de infraestrutura na AWS e Ansible para configuração dos recursos. A aplicação está distribuída em três containers Docker: Nginx, Apache, e MySQL, garantindo um ambiente robusto e escalável.
 
